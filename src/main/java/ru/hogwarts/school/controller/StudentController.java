@@ -1,8 +1,10 @@
 package ru.hogwarts.school.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.hogwarts.school.entity.Faculty;
 import ru.hogwarts.school.entity.Student;
-import ru.hogwarts.school.record.FacultyRecord;
 import ru.hogwarts.school.record.StudentRecord;
 import ru.hogwarts.school.service.StudentService;
 
@@ -12,44 +14,55 @@ import java.util.Collection;
 @RequestMapping("/students")
 public class StudentController {
     private final StudentService studentService;
-    private Student studentRecord;
 
     public StudentController(StudentService studentService) {
         this.studentService = studentService;
     }
 
+    @GetMapping("{id}")
+    public ResponseEntity<Student> getStudentById(@PathVariable Long id) {
+        Student student = studentService.getStudentById(id);
+        if (student == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(student);
+    }
+
+    @GetMapping
+    public ResponseEntity<Collection<Student>> getAllStudentsByAge(@RequestParam(required = false) Long age,
+                                                                   @RequestParam(required = false) Long min,
+                                                                   @RequestParam(required = false) Long max) {
+        if (age != null && age > 0) {
+            return ResponseEntity.ok(studentService.getAllStudentsByAge(age));
+        }
+        if (min != null && max != null) {
+            return ResponseEntity.ok(studentService.findByAgeBetween(min, max));
+        }
+        return ResponseEntity.ok(studentService.findAllStudents());
+    }
+
     @PostMapping
-    public StudentRecord create(@RequestBody @Valid StudentRecord studentRecord) {
-        return studentService.create(studentRecord);
+    public Student addStudent(@RequestBody Student student) {
+        return studentService.addStudent(student);
     }
 
-    @GetMapping("/{id}")
-    public StudentRecord read(@PathVariable long id) {
-        return studentService.read(id);
+    @PutMapping
+    public ResponseEntity<Student> editStudent(@RequestBody Student student) {
+        Student foundStudent = studentService.editStudent(student);
+        if (foundStudent == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        return ResponseEntity.ok(foundStudent);
     }
 
-    @PutMapping("/{id}")
-    public StudentRecord update(@PathVariable long id, @RequestBody @Valid StudentRecord facultyRecord) {
-        return studentService.update(id, studentRecord);
+    @DeleteMapping("{id}")
+    public ResponseEntity<Student> deleteStudent(@PathVariable Long id) {
+        studentService.deleteStudent(id);
+        return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/{id}")
-    public StudentRecord delete(@PathVariable long id) {
-        return studentService.delete(id);
+    @GetMapping("{id}/faculty")
+    public Faculty getStudentsFacultyByStudentsId(@PathVariable Long id) {
+        return studentService.getStudentsFacultyByStudentsId(id);
     }
-
-    @GetMapping
-    public Collection<StudentRecord> findByAge(@RequestParam int age) {
-        return studentService.findByAge(age);
-    }
-
-    @GetMapping
-    public Collection<StudentRecord> findByAgeBetween(@RequestParam("min") int minAge, @RequestParam("max") int maxAge) {
-        return studentService.findByAgeBetween(minAge, maxAge);
-    }
-    @GetMapping("/{id}/faculty")
-    public FacultyRecord findFacultyByStudent(@PathVariable long id){
-        return studentService.findFacultyByStudent(id);
-    }
-
 }
